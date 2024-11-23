@@ -1,0 +1,72 @@
+<html>
+<head>
+<meta charset="UTF-8">
+<title></title>
+<script src="https://cesium.com/downloads/cesiumjs/releases/1.105.1/Build/Cesium/Cesium.js"></script>
+<script src="https://frogcat.github.io/cesium-hash/cesium-hash.js"></script>
+<link href="https://cesium.com/downloads/cesiumjs/releases/1.105.1/Build/Cesium/Widgets/widgets.css" rel="stylesheet"></link>
+<meta property="og:image"
+  content="https://repository-images.githubusercontent.com/603445772/55a074cf-78ee-4d84-b963-470fff698228"/>
+<style>
+#cesiumContainer { position: absolute; top: 0; left: 0; height: 100%; width: 100%; margin: 0; 
+  overflow: hidden; padding: 0; font-family: sans-serif; }
+html { height: 100%; }
+body { padding: 0; margin: 0; overflow: hidden; height: 100%; }
+</style>
+</head>
+<body>
+<div id="cesiumContainer"></div>
+<script>
+// See also: https://github.com/Project-PLATEAU/plateau-streaming-tutorial/blob/main/terrain/plateau-terrain-streaming.md
+Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI5N2UyMjcwOS00MDY1LTQxYjEtYjZjMy00YTU0ZTg5MmViYWQiLCJpZCI6ODAzMDYsImlhdCI6MTY0Mjc0ODI2MX0.dkwAL1CcljUV7NA7fDbhXXnmyZQU_c-G5zRx8PtEcxE"
+const viewer = new Cesium.Viewer("cesiumContainer", {
+  terrainProvider: new Cesium.CesiumTerrainProvider({
+    url: Cesium.IonResource.fromAssetId(770371)
+  }),
+  animation: false,
+  homeButton: false,
+  navigationHelpButton: false,
+  sceneModePicker: false,
+  timeline: false
+})
+const imageProvider = new Cesium.UrlTemplateImageryProvider({ 
+  url: 'https://gic-plateau.s3.ap-northeast-1.amazonaws.com/2020/ortho/tiles/{z}/{x}/{y}.png', maximumLevel : 19
+})
+const current_image = viewer.scene.imageryLayers.addImageryProvider(imageProvider)
+viewer.clock.currentTime = Cesium.JulianDate.fromIso8601("2023-03-21T12:00")
+viewer.scene.globe.depthTestAgainstTerrain = true
+
+const searchParams = new URLSearchParams(window.location.search)
+let cid = searchParams.get('cid') || '01100_sapporo-shi_city_2020_citygml_6_op_bldg_3dtiles_01101_chuo-ku_lod2'
+
+const tileset = new Cesium.Cesium3DTileset({
+  url: `https://data.source.coop/smartmaps/xing/${cid}/tileset.json`,
+  enableDebugWireframe: true,
+})
+viewer.scene.primitives.add(tileset)
+
+tileset.readyPromise.then(function () {
+  viewer.zoomTo(
+    tileset, new Cesium.HeadingPitchRange(0.0, -0.5, tileset.boundingSphere.radius / 4)
+  )
+})
+
+const credit = new Cesium.Credit('国土交通省 with UN Smart Maps')
+viewer.scene.frameState.creditDisplay.addDefaultCredit(credit)
+
+if (Cesium.Hash.decode(location.hash) == null) {
+  tileset.readyPromise.then(function () {
+    viewer.zoomTo(
+      tileset, 
+      new Cesium.HeadingPitchRange(
+        0.0, -0.5, 
+        tileset.boundingSphere.radius / 4)
+    )
+    location.hash = Cesium.Hash.encode(viewer)
+  })
+} else {
+  Cesium.Hash(viewer)
+}
+</script>
+</body>
+</html>
